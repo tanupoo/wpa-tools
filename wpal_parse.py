@@ -2,10 +2,12 @@
 
 from eapdump import parse_eapol_hexdump
 from pydantic import BaseModel
+from typing import Literal
 import re
 
 class Line(BaseModel):
     ts: float
+    dir: Literal["TX", "RX", "NA"]
     msg: BaseModel
 
 re_eap_ts = re.compile("^([\d\.]+): (.*)")
@@ -26,8 +28,9 @@ def parse_wpasup_log_line(line, verbosity=0) -> dict:
                 print("#", ts, dir, len)
             parsed = parse_eapol_hexdump(data, verbosity)
         else:
+            dir = "NA"
             parsed = BaseModel()
-        return Line(ts=ts, msg=parsed)
+        return Line(ts=ts, dir=dir, msg=parsed)
     else:
         return None
 
