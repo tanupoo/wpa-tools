@@ -4,7 +4,7 @@ from typing import List, Optional, Union
 class Packet(BaseModel):
     _name: str
     _hexstr: str
-    parsed: Union[BaseModel, List[BaseModel]]
+    packet: Union[BaseModel, List[BaseModel]]
 
 class ValText(BaseModel):
     Value: int
@@ -119,68 +119,6 @@ def parse_eapol_hexdump(payload, verbosity=0):
     d = payload.split()
     eapol = parse_eapol(d, verbosity=verbosity)
     if eapol.Type.Value != 0:
-        return Packet(_name="Frame", _hexstr=payload, parsed=[ eapol ])
+        return Packet(_name="Frame", _hexstr=payload, packet=[ eapol ])
     eap = parse_eap(eapol.Body, verbosity=verbosity)
-    return Packet(_name="Frame", _hexstr=payload, parsed=[ eapol, eap ])
-
-#
-#
-#
-import re
-
-re_eap_hexdump = re.compile("(.*)(RX|TX) EAPOL - hexdump\(len=(\d+)\): ([a-f\d\s]+)")
-
-def parse_wpasup_log_line(line, verbosity=0) -> dict:
-    r = re_eap_hexdump.match(line)
-    if r:
-        ts = r.group(1)
-        dir = r.group(2)
-        len = r.group(3)
-        if verbosity:
-            print("===")
-            print("#", ts, dir, len)
-        return parse_eapol_hexdump(r.group(4), verbosity).dict()
-    else:
-        return {}
-
-def parse_wpasup_log_file(fd, verbosity=0) -> list[dict]:
-    """
-    XXX it spends too much mamory. needs to support stream fd.
-    """
-    result = []
-    for line in fd:
-        p = parse_wpasup_log_line(line, verbosity)
-        if p:
-            result.append(p)
-    return result
-
-if __name__ == "__main__":
-    import argparse
-    import sys
-    import json
-    ap = argparse.ArgumentParser()
-    ap.add_argument("-f", action="store", dest="log_file")
-    ap.add_argument("-o", action="store", dest="output_file")
-    ap.add_argument("-v", action="append_const", default=[], const=1,
-                    dest="_verbosity")
-    ap.add_argument("--test", action="store_true", dest="test")
-    opt = ap.parse_args()
-    verbosity = len(opt._verbosity)
-    if opt.test:
-        ret = parse_wpasup_log_line(
-            "1673167573.015110: RX EAPOL - hexdump(len=9): 02 00 00 05 01 2b 00 05 01",
-            verbosity=999
-            )
-        print(json.dumps(ret, indent=4))
-    else:
-        if opt.log_file == "-":
-            fd = sys.stdin
-        else:
-            fd = open(opt.log_file)
-        ret = parse_wpasup_log_file(fd, verbosity=verbosity)
-        if opt.output_file and opt.output_file != "-":
-            with(optn(opt.output_file)) as fd:
-                json.dump(ret, fd)
-        else:
-            print(json.dumps(ret))
-
+    return Packet(_name="Frame", _hexstr=payload, packet=[ eapol, eap ])
