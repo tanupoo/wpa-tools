@@ -1,10 +1,10 @@
 from pydantic import BaseModel
-from typing import List, Optional, Union
+from typing import Optional, Union
 
 class Packet(BaseModel):
     _name: str
     _hexstr: str
-    packet: Union[BaseModel, List[BaseModel]]
+    packet: Union[BaseModel, list[BaseModel]]
 
 class ValText(BaseModel):
     Value: int
