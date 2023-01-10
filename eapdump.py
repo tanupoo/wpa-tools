@@ -120,5 +120,5 @@ def parse_eapol_hexdump(payload, verbosity=0):
     eapol = parse_eapol(d, verbosity=verbosity)
     if eapol.Type.Value != 0:
         return Packet(_name="Frame", _hexstr=payload, packet=[ eapol ])
-    eap = parse_eap(eapol.Body, verbosity=verbosity)
+    eap = parse_eap(eapol.Body.split(), verbosity=verbosity)
     return Packet(_name="Frame", _hexstr=payload, packet=[ eapol, eap ])
