@@ -1,7 +1,3 @@
-"""
-1673167573.015110: RX EAPOL - hexdump(len=9): 02 00 00 05 01 2b 00 05 01
-"""
-
 from pydantic import BaseModel
 from typing import List, Optional, Union
 
