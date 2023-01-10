@@ -46,11 +46,16 @@ if __name__ == "__main__":
     verbosity = len(opt._verbosity)
 
     if opt.test:
-        ret = parse_wpasup_log_line(
-            "1673167573.015110: RX EAPOL - hexdump(len=9): 02 00 00 05 01 2b 00 05 01",
-            verbosity=verbosity
-            )
-        print(json.dumps(ret.dict(), indent=4))
+        testvec = [
+            "1673167573.015110: RX EAPOL - hexdump(len=9): "
+            "02 00 00 05 01 2b 00 05 01",
+            "1673167573.015379: TX EAPOL - hexdump(len=30): "
+            "01 00 00 1a 02 2b 00 1a 01 61 6e 6f 6e 79 6d 6f "
+            "75 73 40 6f 64 79 73 73 79 73 2e 6e 65 74",
+            ]
+        for v in testvec:
+            ret = parse_wpasup_log_line(v, verbosity=verbosity)
+            print(json.dumps(ret.dict(), indent=4))
     elif opt.graph:
         pass
     else:
