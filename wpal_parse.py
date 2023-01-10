@@ -1,14 +1,16 @@
 #!/usr/bin/env python
 
-from eapdump import parse_eapol_hexdump
+from eapdump import parse_eapol_hexdump, Packet
 from pydantic import BaseModel
-from typing import Literal
+from typing import Literal, Union
 import re
+
+class Message(BaseModel):
+    text: str
 
 class Line(BaseModel):
     ts: float
-    dir: Literal["TX", "RX", "NA"]
-    msg: BaseModel
+    msg: Union[Packet, Message]
 
 re_eap_ts = re.compile("^([\d\.]+): (.*)")
 re_eap_hexdump = re.compile("(RX|TX) EAPOL - hexdump\(len=(\d+)\): ([a-f\d\s]+)")
@@ -27,10 +29,13 @@ def parse_wpasup_log_line(line, verbosity=0) -> dict:
                 print("===")
                 print("#", ts, dir, len)
             parsed = parse_eapol_hexdump(data, verbosity)
+            return Line(ts=ts, msg=parsed)
         else:
+            """
             dir = "NA"
-            parsed = BaseModel()
-        return Line(ts=ts, dir=dir, msg=parsed)
+            parsed = Message(text=msg)
+            """
+            return None
     else:
         return None
 
