@@ -61,8 +61,8 @@ if __name__ == "__main__":
     def add_line(data, vy, fig, color):
         ax.scatter(data, [vy for _ in range(len(data))], color=color)
 
-    fig = plt.figure(figsize=(12,4))
     nb_axs = len(vxs)
+    fig = plt.figure(figsize=(int(mx/16),2*nb_axs))
     for i,vx in enumerate(vxs):
         ax = fig.add_subplot(nb_axs,1,i+1)
         ax.set_xticks(list(range(0, mx, 10)))
@@ -73,4 +73,5 @@ if __name__ == "__main__":
         add_line(vx["rx_oth"], 3, fig, "blue")
         add_line(vx["tx_oth"], 4, fig, "yellow")
 
+    fig.tight_layout()
     plt.show()
