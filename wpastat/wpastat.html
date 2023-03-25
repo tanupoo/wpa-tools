@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width,initial-scale=1">
+        <link rel="icon" href="data:,"> <!-- NOTE: Remove it for valid icon. -->
+
+        <title>wpa_supplicant stat</title>
+
+        <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+    </head>
+
+    <body>
+
+        <div id="box">
+            <div>
+                <span id="state"></span>
+            </div>
+
+            <div class="text">
+                <span>SSID: </span>
+                <span id="ssid"></span>
+            </div>
+        </div>
+
+<style>
+#box {
+    margin: 16px;
+    padding: 16px;
+}
+.text {
+    font-size: 64px;
+}
+#state {
+    font-size: 128px;
+    font-weight: bold;
+}
+#ssid {
+    font-weight: bold;
+}
+</style>
+
+<script>
+const elm_state = document.getElementById('state');
+const elm_ssid = document.getElementById('ssid');
+
+function put_state(state)
+{
+    elm_state.innerText = state.state;
+    elm_ssid.innerText = state.ssid;
+}
+
+function mqtt_config()
+{
+    var client = mqtt.connect('ws://broker.local:48080');
+
+    client.on('connect', () => {
+        console.log('connected');
+        client.subscribe('wpastat');
+    });
+
+    client.on('message', (topic, message) => {
+        console.log(topic, message);
+        s = new TextDecoder().decode(message);
+        console.log(s);
+        put_state(JSON.parse(s));
+    });
+}
+
+put_state({'state': 'NOT READY', 'ssid': 'NONE'});
+mqtt_config();
+</script>
+
+    </body>
+
+</html>
+
