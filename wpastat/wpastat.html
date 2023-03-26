@@ -16,12 +16,16 @@
 
         <div id="box">
             <div>
-                <span id="state"></span>
+                <span id="wpa_state"></span>
             </div>
 
             <div class="text">
                 <span>SSID: </span>
                 <span id="ssid"></span>
+            </div>
+            <div class="text2">
+                <span>KEY_MGMT: </span>
+                <span id="key_mgmt"></span>
             </div>
         </div>
 
@@ -33,7 +37,10 @@
 .text {
     font-size: 64px;
 }
-#state {
+.text2 {
+    font-size: 32px;
+}
+#wpa_state {
     font-size: 128px;
     font-weight: bold;
 }
@@ -43,13 +50,15 @@
 </style>
 
 <script>
-const elm_state = document.getElementById('state');
+const elm_wpa_state = document.getElementById('wpa_state');
 const elm_ssid = document.getElementById('ssid');
+const elm_key_mgmt = document.getElementById('key_mgmt');
 
 function put_state(state)
 {
-    elm_state.innerText = state.state;
+    elm_wpa_state.innerText = state.wpa_state;
     elm_ssid.innerText = state.ssid;
+    elm_key_mgmt.innerText = state.key_mgmt;
 }
 
 function mqtt_config()
@@ -69,7 +78,7 @@ function mqtt_config()
     });
 }
 
-put_state({'state': 'NOT READY', 'ssid': 'NONE'});
+put_state({'wpa_state': 'NOTREADY', 'ssid': 'N/A', 'key_mgmt': 'N/A'});
 mqtt_config();
 </script>
 
