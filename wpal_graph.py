@@ -74,8 +74,13 @@ def read_log(log_file):
         fd = open(log_file)
     #
     vx = {
-        "packets": {},
-        "states": {}
+        "packets": {
+            "rx_id": [],
+            "tx_id": [],
+            "rx_oth": [],
+            "tx_oth": [],
+            },
+        "states": { }
         }
     ts_epoc = 0
     if opt.ts_absolute:
