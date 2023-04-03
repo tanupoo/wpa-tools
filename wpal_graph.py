@@ -74,7 +74,7 @@ def read_log(log_file):
         fd = open(log_file)
     #
     vx = {
-        "packets": [],
+        "packets": {},
         "states": {}
         }
     ts_epoc = 0
@@ -100,14 +100,14 @@ def read_log(log_file):
                 xpkt = vx["packets"]
                 if eap.Code.Text == "Response":
                     if hasattr(eap.Type, "Text") and eap.Type.Text == "Identity":
-                        xpkt["rx_id"].append(ts)
+                        xpkt.setdefault("rx_id", []).append(ts)
                     else:
-                        xpkt["rx_oth"].append(ts)
+                        xpkt.setdefault("rx_oth", []).append(ts)
                 else:
                     if hasattr(eap.Type, "Text") and eap.Type.Text == "Identity":
-                        xpkt["tx_id"].append(ts)
+                        xpkt.setdefault("tx_id", []).append(ts)
                     else:
-                        xpkt["tx_oth"].append(ts)
+                        xpkt.setdefault("tx_oth", []).append(ts)
         elif line.msg.type in [ "EAPOL_PAE", "EAPOL_BE", "EAP", "I/F" ]:
             x2 = vx["states"].setdefault(line.msg.type, [])
             x2.append({"ts": ts, "state": line.msg.state})
