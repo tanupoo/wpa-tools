@@ -5,18 +5,46 @@ from pydantic import BaseModel
 from typing import Literal, Union
 import re
 
+class State(BaseModel):
+    type: str
+    state: str
+
 class Message(BaseModel):
     text: str
 
 class Line(BaseModel):
     ts: float
-    msg: Union[Packet, Message]
+    msg: Union[Packet, Message, State]
 
-re_eap_ts = re.compile("^([\d\.]+): (.*)")
+re_ts = re.compile("^([\d\.]+): (.*)")
 re_eap_hexdump = re.compile("(RX|TX) EAPOL - hexdump\(len=(\d+)\): ([a-f\d\s]+)")
 
+def reh_eapol_pae_state(ts, keys):
+    return State(type="EAPOL_PAE", state=keys(1))
+def reh_eapol_be_state(ts, keys):
+    return State(type="EAPOL_BE", state=keys(1))
+def reh_eap_state(ts, keys):
+    return State(type="EAP", state=keys(1))
+def reh_if_assoc(ts, keys):
+    return State(type="BSSID", state=keys(2))
+def reh_if_state(ts, keys):
+    return State(type="I/F", state=keys(3))
+
+re_hdls = [
+    { "regex": re.compile("EAPOL: SUPP_PAE entering state (.+)"),
+     "hdl": reh_eapol_pae_state },
+    { "regex": re.compile("EAPOL: SUPP_BE entering state (.+)"),
+     "hdl": reh_eapol_be_state },
+    { "regex": re.compile("EAP: EAP entering state (.+)"),
+     "hdl": reh_eap_state },
+    { "regex": re.compile("([^:]+): Trying to associate with ([^\s]+) \(SSID='([^']+)' freq="),
+     "hdl": reh_if_assoc },
+    { "regex": re.compile("([^:]+): State: ([^\s]+) -> ([^\s]+)"),
+     "hdl": reh_if_state }
+    ]
+
 def parse_wpasup_log_line(line, verbosity=0) -> dict:
-    r_ts = re_eap_ts.match(line)
+    r_ts = re_ts.match(line)
     if r_ts:
         ts = r_ts.group(1)
         msg = r_ts.group(2)
@@ -31,11 +59,17 @@ def parse_wpasup_log_line(line, verbosity=0) -> dict:
             parsed = parse_eapol_hexdump(data, verbosity)
             return Line(ts=ts, msg=parsed)
         else:
-            """
-            dir = "NA"
-            parsed = Message(text=msg)
-            """
-            return None
+            for h in re_hdls:
+                r = h["regex"].match(msg)
+                if r:
+                    parsed = h["hdl"](ts, r.group)
+                    return Line(ts=ts, msg=parsed)
+            else:
+                """
+                dir = "NA"
+                parsed = Message(text=msg)
+                """
+                return None
     else:
         return None
 
@@ -48,7 +82,6 @@ if __name__ == "__main__":
     ap.add_argument("-o", action="store", dest="output_file")
     ap.add_argument("-v", action="append_const", default=[], const=1,
                     dest="_verbosity")
-    ap.add_argument("--graph", action="store_true", dest="graph")
     ap.add_argument("--test", action="store_true", dest="test")
     opt = ap.parse_args()
     verbosity = len(opt._verbosity)
@@ -64,8 +97,6 @@ if __name__ == "__main__":
         for v in testvec:
             ret = parse_wpasup_log_line(v, verbosity=verbosity)
             print(json.dumps(ret.dict(), indent=4))
-    elif opt.graph:
-        pass
     else:
         # input file
         if opt.log_file == "-":
