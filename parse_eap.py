@@ -113,10 +113,19 @@ def parse_eap(data, verbosity=0):
             print(f"- Data: {p.Data}")
     return p
 
-def parse_eapol_hexdump(payload, verbosity=0):
+def parse_eapol_hexdump(ts, keys, verbosity=0):
     """
+    ts: timestamp, str
+    keys: re.group
+    verbosity:
         "02 00 ..."
     """
+    dir = keys(1)
+    len = keys(2)
+    payload = keys(3)
+    if verbosity:
+        print("===")
+        print("#", ts, dir, len)
     d = payload.split()
     eapol = parse_eapol(d, verbosity=verbosity)
     if eapol.Type.Value != 0:

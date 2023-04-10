@@ -17,20 +17,21 @@ class Line(BaseModel):
     msg: Union[Packet, Message, State]
 
 re_ts = re.compile("^([\d\.]+): (.*)")
-re_eap_hexdump = re.compile("(RX|TX) EAPOL - hexdump\(len=(\d+)\): ([a-f\d\s]+)")
 
-def reh_eapol_pae_state(ts, keys):
+def reh_eapol_pae_state(ts, keys, verbosity=0):
     return State(type="EAPOL_PAE", state=keys(1))
-def reh_eapol_be_state(ts, keys):
+def reh_eapol_be_state(ts, keys, verbosity=0):
     return State(type="EAPOL_BE", state=keys(1))
-def reh_eap_state(ts, keys):
+def reh_eap_state(ts, keys, verbosity=0):
     return State(type="EAP", state=keys(1))
-def reh_if_assoc(ts, keys):
+def reh_if_assoc(ts, keys, verbosity=0):
     return State(type="BSSID", state=keys(2))
-def reh_if_state(ts, keys):
+def reh_if_state(ts, keys, verbosity=0):
     return State(type="I/F", state=keys(3))
 
 re_hdls = [
+    { "regex": re.compile("(RX|TX) EAPOL - hexdump\(len=(\d+)\): ([a-f\d\s]+)"),
+     "hdl": parse_eapol_hexdump },
     { "regex": re.compile("EAPOL: SUPP_PAE entering state (.+)"),
      "hdl": reh_eapol_pae_state },
     { "regex": re.compile("EAPOL: SUPP_BE entering state (.+)"),
@@ -48,28 +49,17 @@ def parse_wpasup_log_line(line, verbosity=0) -> dict:
     if r_ts:
         ts = r_ts.group(1)
         msg = r_ts.group(2)
-        r_msg = re_eap_hexdump.match(msg)
-        if r_msg:
-            dir = r_msg.group(1)
-            len = r_msg.group(2)
-            data = r_msg.group(3)
-            if verbosity:
-                print("===")
-                print("#", ts, dir, len)
-            parsed = parse_eapol_hexdump(data, verbosity)
-            return Line(ts=ts, msg=parsed)
+        for h in re_hdls:
+            r = h["regex"].match(msg)
+            if r:
+                parsed = h["hdl"](ts, r.group)
+                return Line(ts=ts, msg=parsed)
         else:
-            for h in re_hdls:
-                r = h["regex"].match(msg)
-                if r:
-                    parsed = h["hdl"](ts, r.group)
-                    return Line(ts=ts, msg=parsed)
-            else:
-                """
-                dir = "NA"
-                parsed = Message(text=msg)
-                """
-                return None
+            """
+            dir = "NA"
+            parsed = Message(text=msg)
+            """
+            return None
     else:
         return None
 
