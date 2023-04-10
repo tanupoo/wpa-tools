@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-from eapdump import parse_eapol_hexdump, Packet
+from parse_eap import parse_eapol_hexdump, Packet
 from pydantic import BaseModel
 from typing import Literal, Union
 import re
