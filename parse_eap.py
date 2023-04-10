@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Union
+from packet import Packet
 
 class ValText(BaseModel):
     Value: int
@@ -24,12 +25,6 @@ class EAP(BaseModel):
     Length: int
     Type: Optional[ValText]
     Data: Optional[str]
-
-class Packet(BaseModel):
-    _name: str
-    _hexstr: str
-    type: str = Field("packet", const=True)
-    packet: list[Union[EAPOL, EAP]]
 
 def com_int(vs):
     if isinstance(vs, list):

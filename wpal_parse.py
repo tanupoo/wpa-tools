@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
-from parse_eap import parse_eapol_hexdump, Packet
+from packet import Packet
+from parse_eap import parse_eapol_hexdump
+from parse_ieee80211ie import parse_ieee80211ie_hexdump
 from pydantic import BaseModel
 from typing import Literal, Union
 import re
@@ -41,7 +43,9 @@ re_hdls = [
     { "regex": re.compile("([^:]+): Trying to associate with ([^\s]+) \(SSID='([^']+)' freq="),
      "hdl": reh_if_assoc },
     { "regex": re.compile("([^:]+): State: ([^\s]+) -> ([^\s]+)"),
-     "hdl": reh_if_state }
+     "hdl": reh_if_state },
+    { "regex": re.compile("IEs - hexdump\(len=(\d+)\): ([a-f\d\s]+)"),
+     "hdl": parse_ieee80211ie_hexdump }
     ]
 
 def parse_wpasup_log_line(line, verbosity=0) -> dict:
@@ -49,10 +53,14 @@ def parse_wpasup_log_line(line, verbosity=0) -> dict:
     if r_ts:
         ts = r_ts.group(1)
         msg = r_ts.group(2)
+        if verbosity > 1:
+            print("##", ts, msg)
         for h in re_hdls:
             r = h["regex"].match(msg)
             if r:
                 parsed = h["hdl"](ts, r.group)
+                if verbosity > 1:
+                    print(parsed)
                 return Line(ts=ts, msg=parsed)
         else:
             """

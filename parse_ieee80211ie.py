@@ -1,11 +1,27 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Union
+from packet import Packet
 
 class IE_Base(BaseModel):
     name: str
     eid: int
     length: int
     data: list[int]
+
+    """
+    class Config:
+        json_encoders = {
+            # custom output conversion for your type
+            MongoId: lambda mid: str(mid)
+        }
+    """
+
+    def dict(self, **kwargs):
+        output = super().dict(**kwargs)
+        for k,v in output.items():
+            if k == "data":
+                output[k] = " ".join([ f"{_:02x}" for _ in self.data])
+        return output
 
 class IE_SSID(IE_Base):
     ssid: str
@@ -25,14 +41,14 @@ def get_payload(data, offset):
 
 def pr_roaming_consortium(hdl, data, offset):
     payload, length, offset = get_payload(data, offset)
-    print("xxx", [hex(i) for i in payload])
-    return offset, IE_Base(name=hdl["name"], eid=hdl["id"],
+    #print("xxx", [hex(i) for i in payload])
+    return offset, IE_Base(name=f"IE {hdl['name']}", eid=hdl["id"],
                           length=length, data=payload)
 
 def pr_country(hdl, data, offset):
     payload, length, offset = get_payload(data, offset)
     country = "".join([chr(a) for a in payload[0:3]])
-    return offset, IE_Country(name=hdl["name"], eid=hdl["id"],
+    return offset, IE_Country(name=f"IE {hdl['name']}", eid=hdl["id"],
                               length=length, data=payload,
                               country=country,
                               channel_1st=int(payload[3]),
@@ -41,19 +57,19 @@ def pr_country(hdl, data, offset):
 
 def pr_supported_rates(hdl, data, offset):
     payload, length, offset = get_payload(data, offset)
-    return offset, IE_Base(name=hdl["name"], eid=hdl["id"],
+    return offset, IE_Base(name=f"IE {hdl['name']}", eid=hdl["id"],
                           length=length, data=payload)
 
 def pr_ssid(hdl, data, offset):
     payload, length, offset = get_payload(data, offset)
     ssid = "".join([chr(a) for a in payload])
-    return offset, IE_SSID(name=hdl["name"], eid=hdl["id"],
+    return offset, IE_SSID(name=f"IE {hdl['name']}", eid=hdl["id"],
                           length=length, data=payload,
                           ssid=ssid)
 
 def pr_base(hdl, data, offset):
     payload, length, offset = get_payload(data, offset)
-    return offset, IE_Base(name=hdl["name"], eid=hdl["id"],
+    return offset, IE_Base(name=f"IE {hdl['name']}", eid=hdl["id"],
                           length=length, data=payload)
 
 
@@ -377,13 +393,21 @@ def parse_ieee80211ie(data: list[int], verbosity=0):
         ieset.append(elm)
     return ieset
 
-def parse_ieee80211_hexdump(payload, verbosity=0):
+def parse_ieee80211ie_hexdump(ts, keys, verbosity=0):
     """
+    ts: timestamp, str
+    keys: re.group
+    verbosity:
         "02 00 ..."
     """
+    len = keys(1)
+    payload = keys(2)
+    if verbosity > 1:
+        print("===")
+        print("#", ts, len, payload)
     d = [int(n,16) for n in payload.split()]
     obj = parse_ieee80211ie(d, verbosity=verbosity)
-    #print(obj)
+    return Packet(_name="IE", _hexstr=payload, packet=obj)
 
 if __name__ == "__main__":
     test_payloads = [
@@ -443,4 +467,4 @@ if __name__ == "__main__":
     ]
     for payload in test_payloads:
         print("----")
-        parse_ieee80211_hexdump(payload, 1)
+        parse_ieee80211ie_hexdump(0, payload, 1)
