@@ -32,12 +32,71 @@ class IE_Country(IE_Base):
     nb_channels: int
     max_tx_power: int
 
+class IE_Vendor_Base(IE_Base):
+    vendor: str
+
+class IE_Vendor_WFA(IE_Vendor_Base):
+    voi_type: str
+    voi_data: list[int]
+
+    def dict(self, **kwargs):
+        output = super().dict(**kwargs)
+        for k,v in output.items():
+            if k == "voi_data":
+                output[k] = " ".join([ f"{_:02x}" for _ in self.voi_data])
+        return output
+
 def get_payload(data, offset):
     offset += 1
     length = data[offset]
     offset += 1
     payload = data[offset:offset+length]
     return payload, length, offset+length
+
+oui_list = [
+    ([0x00, 0x50, 0xf2], "Microsoft Corp"),
+    ([0x50, 0x6f, 0x9a], "Wi-Fi Alliance"),
+    ([0x00, 0x03, 0x7f], "Atheros Communications, Inc"),
+    ([0x00, 0x13, 0x92], "Ruckus Wireless"),
+    ([0x00, 0x90, 0x4c], "Epigram, Inc"),
+    ([0x00, 0xe0, 0x4c], "Realtek Semiconductor Corp"),
+    ([0x00, 0x0b, 0x86], "Aruba, a Hewlett Packard Enterprise Co"),
+    ([0x8c, 0xfd, 0xf0], "Qualcomm Inc"),
+    ([0x00, 0x18, 0x0a], "Cisco Meraki"),
+    ([0x00, 0x40, 0x96], "Cisco Systems, Inc"),
+    ([0x00, 0x0c, 0x43], "Ralink Tech, Corp"),
+    ([0x00, 0x0c, 0xe7], "MediaTek Inc"),
+    ]
+
+def pr_vendor_specific(hdl, data, offset):
+    payload, length, offset = get_payload(data, offset)
+    for oui,v_name in oui_list:
+        if payload[:3] == oui:
+            if oui == [0x50, 0x6f, 0x9a]:
+                if payload[3] == 0x10:
+                    voi_type = "HS2.0 Indication"
+                elif payload[3] == 0x1d:
+                    voi_type = "Roaming Consortium Selection"
+                else:
+                    voi_type = "Unknown"
+                voi_data = payload[4:]
+                return offset, IE_Vendor_WFA(
+                        name=f"IE {hdl['name']}", eid=hdl["id"],
+                        length=length, data=payload,
+                        vendor=v_name,
+                        voi_type=voi_type,
+                        voi_data=voi_data)
+            else:
+                voi_data = payload[3:]
+                break
+    else:
+        voi_data = payload[3:]
+        v_name = "Unknown"
+    return offset, IE_Vendor_Base(
+            name=f"IE {hdl['name']}", eid=hdl["id"],
+            length=length, data=payload,
+            vendor=v_name,
+            voi_data=voi_data)
 
 def pr_roaming_consortium(hdl, data, offset):
     payload, length, offset = get_payload(data, offset)
@@ -357,7 +416,7 @@ element_list = [
     {
         "id": 221,
         "name": "VENDOR_SPECIFIC",
-        "parser": pr_base,
+        "parser": pr_vendor_specific,
     },
 ]
 
